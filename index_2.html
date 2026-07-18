@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>환율 비교</title>
+<!-- PWA / 홈화면 설치용 메타 -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="환율비교">
+<meta name="theme-color" content="#0d1b2a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1b2a'/%3E%3Ctext x='50' y='64' font-size='44' text-anchor='middle'%3E%F0%9F%92%B1%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --paper:#0d1b2a;
+    --panel:#132638;
+    --panel2:#0f2030;
+    --line:#1e3a52;
+    --krw:#5aa9e6;
+    --usd:#7fc8a9;
+    --php:#f4a259;
+    --text:#e8eef4;
+    --dim:#8aa2b5;
+    --up:#63d471;
+    --down:#ff6b6b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',-apple-system,sans-serif;
+    background:var(--paper);
+    color:var(--text);
+    min-height:100vh;
+    padding:calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(env(safe-area-inset-bottom, 0px) + 40px);
+  }
+  .wrap{max-width:520px;margin:0 auto;}
+  header{margin-bottom:22px;}
+  .eyebrow{font-size:11px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;margin-bottom:6px;}
+  h1{font-size:22px;font-weight:700;letter-spacing:-.01em;}
+  h1 .flag{font-size:18px;margin-left:6px;}
+  .updated{font-size:12px;color:var(--dim);margin-top:6px;display:flex;align-items:center;gap:8px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--up);display:inline-block;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .board{display:grid;gap:10px;margin-bottom:24px;}
+  .rate-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px 18px;
+    display:flex;justify-content:space-between;align-items:center;
+    position:relative;overflow:hidden;
+  }
+  .rate-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .rate-card.krw::before{background:var(--krw);}
+  .rate-card.php::before{background:var(--php);}
+  .rate-card.cross::before{background:linear-gradient(var(--krw),var(--php));}
+  .pair{font-size:13px;color:var(--dim);margin-bottom:4px;}
+  .pair b{color:var(--text);font-weight:600;}
+  .big{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .unit{font-size:14px;color:var(--dim);font-weight:400;margin-left:2px;}
+  .side{font-size:11px;color:var(--dim);text-align:right;line-height:1.5;}
+
+  .conv{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:20px 18px;
+  }
+  .conv h2{font-size:14px;font-weight:600;color:var(--dim);letter-spacing:.05em;margin-bottom:14px;}
+  .row{
+    display:flex;align-items:center;gap:12px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:10px;
+    transition:border-color .15s;
+  }
+  .row:focus-within{border-color:var(--krw);}
+  .cur{display:flex;align-items:center;gap:8px;min-width:86px;font-weight:600;font-size:15px;}
+  .cur .sym{
+    width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;font-weight:700;color:#0d1b2a;
+  }
+  .row.r-krw .sym{background:var(--krw);}
+  .row.r-usd .sym{background:var(--usd);}
+  .row.r-php .sym{background:var(--php);}
+  .row input{
+    flex:1;border:none;background:transparent;color:var(--text);
+    font-size:20px;font-weight:600;text-align:right;outline:none;
+    font-variant-numeric:tabular-nums;min-width:0;font-family:inherit;
+  }
+  .row input::placeholder{color:#3d5a73;}
+  .hint{font-size:12px;color:var(--dim);text-align:center;margin-top:12px;line-height:1.6;}
+
+  .btn{
+    width:100%;margin-top:18px;
+    background:linear-gradient(135deg,var(--krw),#3d7fb8);
+    color:#fff;border:none;border-radius:12px;
+    padding:14px;font-size:15px;font-weight:700;
+    cursor:pointer;font-family:inherit;
+    transition:opacity .15s, transform .1s;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.5;cursor:wait;}
+
+  .quick{margin-top:22px;}
+  .quick h3{font-size:13px;color:var(--dim);font-weight:600;margin-bottom:10px;letter-spacing:.05em;}
+  table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;}
+  th{color:var(--dim);font-weight:500;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);font-size:12px;}
+  th:first-child{text-align:left;}
+  td{padding:8px;text-align:right;border-bottom:1px solid rgba(30,58,82,.4);}
+  td:first-child{text-align:left;color:var(--dim);}
+  .err{
+    background:#3a1f24;border:1px solid #6b2f38;color:#ffb4b4;
+    border-radius:12px;padding:14px;font-size:13px;line-height:1.6;
+    margin-bottom:16px;display:none;
+  }
+  .offline-badge{
+    display:none;font-size:11px;color:var(--php);
+    background:rgba(244,162,89,.12);border:1px solid rgba(244,162,89,.3);
+    border-radius:8px;padding:6px 10px;margin-bottom:14px;
+  }
+  footer{margin-top:26px;font-size:11px;color:#4a6377;text-align:center;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Live FX Board</div>
+    <h1>원 · 달러 · 페소 환율 비교<span class="flag">🇰🇷🇺🇸🇵🇭</span></h1>
+    <div class="updated"><span class="dot"></span><span id="updated">불러오는 중…</span></div>
+  </header>
+
+  <div class="offline-badge" id="offline">⚠ 오프라인 — 마지막으로 저장된 환율을 표시 중입니다</div>
+  <div class="err" id="err"></div>
+
+  <div class="board">
+    <div class="rate-card krw">
+      <div>
+        <div class="pair">달러/원 <b>USD → KRW</b></div>
+        <div class="big" id="usdkrw">—<span class="unit">원</span></div>
+      </div>
+      <div class="side">1달러당</div>
+    </div>
+    <div class="rate-card php">
+      <div>
+        <div class="pair">달러/페소 <b>USD → PHP</b></div>
+        <div class="big" id="usdphp">—<span class="unit">₱</span></div>
+      </div>
+      <div class="side">1달러당</div>
+    </div>
+    <div class="rate-card cross">
+      <div>
+        <div class="pair">페소/원 크로스 <b>PHP → KRW</b></div>
+        <div class="big" id="phpkrw">—<span class="unit">원</span></div>
+      </div>
+      <div class="side">1페소당<br>(자동계산)</div>
+    </div>
+  </div>
+
+  <div class="conv">
+    <h2>금액 입력 — 나머지 두 통화 자동 환산</h2>
+    <div class="row r-krw">
+      <div class="cur"><span class="sym">₩</span>KRW</div>
+      <input id="in-krw" type="text" inputmode="decimal" placeholder="원화 입력">
+    </div>
+    <div class="row r-usd">
+      <div class="cur"><span class="sym">$</span>USD</div>
+      <input id="in-usd" type="text" inputmode="decimal" placeholder="달러 입력">
+    </div>
+    <div class="row r-php">
+      <div class="cur"><span class="sym">₱</span>PHP</div>
+      <input id="in-php" type="text" inputmode="decimal" placeholder="페소 입력">
+    </div>
+    <div class="hint">아무 칸에나 금액을 입력하면 나머지가 실시간 계산됩니다</div>
+  </div>
+
+  <button class="btn" id="refresh">↻ 최신 환율 새로고침</button>
+
+  <div class="quick">
+    <h3>빠른 환산표 (원화 기준)</h3>
+    <table>
+      <thead><tr><th>KRW</th><th>USD</th><th>PHP</th></tr></thead>
+      <tbody id="quicktable"><tr><td colspan="3" style="text-align:center;color:#4a6377">환율 로딩 중…</td></tr></tbody>
+    </table>
+  </div>
+
+  <footer>
+    환율 출처: open.er-api.com (미드마켓 기준)<br>
+    실제 환전 시 은행/환전소 스프레드로 2~4% 차이가 날 수 있습니다
+  </footer>
+</div>
+
+<script>
+let R = { krw: null, php: null };
+const $ = id => document.getElementById(id);
+const fmt = (n, d=2) => n==null ? '—' : n.toLocaleString('ko-KR',{maximumFractionDigits:d,minimumFractionDigits:0});
+const parseNum = s => { const v = parseFloat(String(s).replace(/,/g,'')); return isNaN(v)?null:v; };
+
+// 마지막 환율을 기기에 저장해서 오프라인에서도 계산기 사용 가능
+function saveLast(ts){
+  try{ localStorage.setItem('fxLast', JSON.stringify({krw:R.krw, php:R.php, ts:ts.getTime()})); }catch(e){}
+}
+function loadLast(){
+  try{
+    const raw = localStorage.getItem('fxLast');
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    R.krw = d.krw; R.php = d.php;
+    render(new Date(d.ts));
+    return true;
+  }catch(e){ return false; }
+}
+
+async function loadRates(){
+  const btn = $('refresh');
+  btn.disabled = true; btn.textContent = '불러오는 중…';
+  $('err').style.display = 'none';
+  $('offline').style.display = 'none';
+  try{
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    if(data.result!=='success') throw new Error('API 오류');
+    R.krw = data.rates.KRW;
+    R.php = data.rates.PHP;
+    const ts = new Date(data.time_last_update_utc);
+    render(ts);
+    saveLast(ts);
+  }catch(e){
+    // 실패 시: 저장된 마지막 환율로 폴백
+    const hadCache = loadLast();
+    if(hadCache){
+      $('offline').style.display = 'block';
+    }else{
+      $('err').textContent = '환율을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침을 눌러 주세요. ('+e.message+')';
+      $('err').style.display = 'block';
+    }
+  }finally{
+    btn.disabled = false; btn.textContent = '↻ 최신 환율 새로고침';
+  }
+}
+
+function render(ts){
+  const phpkrw = R.krw / R.php;
+  $('usdkrw').innerHTML = fmt(R.krw,2)+'<span class="unit">원</span>';
+  $('usdphp').innerHTML = fmt(R.php,2)+'<span class="unit">₱</span>';
+  $('phpkrw').innerHTML = phpkrw.toFixed(2)+'<span class="unit">원</span>';
+  $('updated').textContent = '기준 시각: ' + ts.toLocaleString('ko-KR');
+
+  const amounts = [10000, 50000, 100000, 500000, 1000000, 5000000];
+  $('quicktable').innerHTML = amounts.map(a=>{
+    const usd = a / R.krw, php = usd * R.php;
+    return '<tr><td>'+fmt(a,0)+'원</td><td>$'+fmt(usd,2)+'</td><td>₱'+fmt(php,0)+'</td></tr>';
+  }).join('');
+
+  recalcFrom('krw');
+}
+
+function recalcFrom(src){
+  if(R.krw==null) return;
+  const vals = { krw: parseNum($('in-krw').value), usd: parseNum($('in-usd').value), php: parseNum($('in-php').value) };
+  const v = vals[src];
+  if(v==null) return;
+  let usd;
+  if(src==='krw') usd = v / R.krw;
+  else if(src==='usd') usd = v;
+  else usd = v / R.php;
+  if(src!=='krw') $('in-krw').value = fmt(usd*R.krw, 0);
+  if(src!=='usd') $('in-usd').value = fmt(usd, 2);
+  if(src!=='php') $('in-php').value = fmt(usd*R.php, 2);
+}
+
+['krw','usd','php'].forEach(c=>{
+  $('in-'+c).addEventListener('input', ()=>recalcFrom(c));
+});
+$('refresh').addEventListener('click', loadRates);
+loadLast();       // 저장된 환율 먼저 표시 (즉시)
+loadRates();      // 최신 환율로 갱신
+</script>
+</body>
+</html>
